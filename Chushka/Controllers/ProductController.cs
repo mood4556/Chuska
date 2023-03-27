@@ -2,6 +2,7 @@
 using Chushka.Data;
 using Chushka.Data.Models;
 using Chushka.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Chushka.Controllers
@@ -10,10 +11,12 @@ namespace Chushka.Controllers
     {
 
         private readonly ApplicationDbContext db;
+        private readonly UserManager<Client> userManager;
 
-        public ProductController(ApplicationDbContext db)
+        public ProductController(ApplicationDbContext db, UserManager<Client> userManager)
         {
             this.db = db;
+            this.userManager = userManager;              
         }
         public IActionResult Index()
         {
@@ -25,10 +28,20 @@ namespace Chushka.Controllers
 
             return View();
         }
-        public IActionResult Details()
+        public async Task <IActionResult>  Details(int Id)
         {
+            var client = await userManager.GetUserAsync(this.User);
+            var model = db.Products.Where(x=>x.Id==Id).Select(x => new ProductViewModel
+            {
+                Name = x.Name,
+                Description = x.Description,
+                Id = x.Id,
+                ClientId=client.Id,
+                Price = x.Price,
 
-            return View();
+            }).FirstOrDefault();
+            return View(model);
+
         }
         public IActionResult Detailsadmin()
         {
@@ -62,20 +75,23 @@ namespace Chushka.Controllers
         [HttpGet]
         public IActionResult AdminHome()
         {
-            return View();
-        }
-        [HttpPost]
-        public IActionResult AdminHome(ProductViewModel x)
-        {
             var model = db.Products.Select(x => new ProductViewModel
             {
                 Name = x.Name,
                 Description=x.Description,
                 Id=x.Id,
                 Price=x.Price
-            });
+            }).ToList();
             return View(model);
         }
-
+        [HttpPost]
+        public IActionResult AdminHome(ProductViewModel x)
+        {
+            return View();
+        }
+        public IActionResult Order()
+        {
+            return RedirectToAction("All","Order");
+        }
     }
 }
